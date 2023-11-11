@@ -1,0 +1,84 @@
+import tkinter as tk
+from tkinter import simpledialog
+from docx import Document
+from datetime import datetime
+import openai
+import os  # To access environment variable for API key
+
+# Function to set up the OpenAI client
+# (API Key should be set as an environment variable for security reasons)
+def setup_openai_client():
+    # Fetch the API key from an environment variable
+    openai.api_key = 'sk-XXXXXXXXXXXXXXXXXX'
+    return openai
+
+# Function to generate text for each section using OpenAI's API
+def generate_market_research_section(openai_client, section_name, user_input):
+    response = openai.completions.create(
+        model="gpt-3.5-turbo-instruct",
+        prompt=f"Generate a market research report section on '{section_name}'. The product is: glasses for neurodiverse children aged 5 to 12 that block peripheral vision to decrease sensory overload. Details: {user_input}",
+        max_tokens=1000
+    )
+    return response.choices[0].text.strip()
+
+# Create the main document structure for market research report
+def create_market_research_document(openai_client, document, structure, user_input):
+    for section, subsections in structure.items():
+        document.add_heading(section, level=1)
+        if not subsections:  # If there are no subsections, add the section content
+            content = generate_market_research_section(openai_client, section, user_input)
+            document.add_paragraph(content)
+        else:  # If there are subsections, add subsections content
+            for subsection in subsections:
+                document.add_heading(subsection, level=2)
+                content = generate_market_research_section(openai_client, subsection, user_input)
+                document.add_paragraph(content)
+
+# Market research report structure based on the provided template
+market_research_structure = {
+    "Executive Summary": [],
+    "Industry Overview": [],
+    "Target Market Analysis": [],
+    "Competitive Analysis": [],
+    "Customer Analysis": [],
+    "SWOT Analysis": [],
+    "Market Entry Strategy": [],
+    "Financial Projections": [],
+    "Conclusion and Recommendations": [],
+    "References and Citations": [],
+    "Appendices": []
+}
+
+# Start GUI for input
+root = tk.Tk()
+root.withdraw()  # Hide the main window
+
+# Ask the user for details about the market research they need
+market_research_details = simpledialog.askstring(
+    "Input",
+    "What specific details do you want the market research report to focus on?"
+)
+
+# Proceed only if market research details are provided
+if market_research_details:
+    # Create a new Word document for the market research report
+    doc = Document()
+    doc.add_heading('Market Research Report', 0)
+
+    # Set up the OpenAI client using the function defined
+    openai_client = setup_openai_client()
+    
+    # Generate and add sections based on the market research structure
+    create_market_research_document(openai_client, doc, market_research_structure, market_research_details)
+
+    # Save the market research report with a timestamp
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    filename = f'Market_Research_Report_{timestamp}.docx'
+    doc.save(filename)
+    print(f"The Market Research Report has been saved to '{filename}'.")
+
+    # Destroy the GUI window after saving the file
+    root.destroy()
+
+# Run the application
+root.mainloop()
